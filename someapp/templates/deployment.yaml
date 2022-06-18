@@ -94,7 +94,8 @@ spec:
             mountPath: /var/log/api  
       volumes:
         - name: apilog
-          emptyDir: {}     
+          emptyDir: 
+            sizeLimit: "5Gi"   
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
