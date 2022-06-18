@@ -1,0 +1,97 @@
+# Default values for someapp.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: 1111.dkr.ecr.us-east-2.amazonaws.com/api
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "0.1.1"
+  init:
+    repository: 1111.dkr.ecr.us-east-2.amazonaws.com/alembic
+    pullPolicy: IfNotPresent
+  commonLog:
+    repository: 1111.dkr.ecr.us-east-2.amazonaws.com/busybox
+    pullPolicy: IfNotPresent  
+    tag: "1.34"
+  clientLog:
+    repository: 1111.dkr.ecr.us-east-2.amazonaws.com/busybox
+    pullPolicy: IfNotPresent  
+    tag: "1.34"
+
+imagePullSecrets:
+  - name: regcred
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+containerEnv:
+  init:
+    simple:
+      LOG_LEVEL: INFO
+    secret:
+      DB_USER: "db-creds"
+      DB_PASSWORD:  "db-creds"
+  api:
+    simple:
+      LOG_LEVEL: INFO
+    secret:
+      DB_USER: "db-creds"
+      DB_PASSWORD:  "db-creds"   
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: api.example.com
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+  tls:
+    - secretName: example-com-tls
+
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

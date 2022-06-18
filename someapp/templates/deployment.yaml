@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "someapp.fullname" . }}
+  labels:
+    {{- include "someapp.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "someapp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "someapp.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: alembic
+          image: "{{ .Values.image.init.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.init.pullPolicy }}
+          env:
+          {{- range $key, $val := .Values.containerEnv.init.secret }}
+          - name: {{ $key | upper }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ $val }}
+                key: {{ $key }}
+          {{- end }}
+          {{- range $key, $val := .Values.containerEnv.init.simple }}
+          - name: {{ $key | upper }}
+            value: {{ $val | quote }}
+          {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: apilog
+              mountPath: /var/log/api
+          env:
+          {{- range $key, $val := .Values.containerEnv.api.secret }}
+          - name: {{ $key | upper }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ $val }}
+                key: {{ $key }}
+          {{- end }}
+          {{- range $key, $val := .Values.containerEnv.api.simple }}
+          - name: {{ $key | upper }}
+            value: {{ $val | quote }}
+          {{- end }}
+        - name: {{ .Chart.Name }}-common-log
+          image: "{{ .Values.image.commonLog.repository }}:{{ .Values.image.commonLog.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.commonLog.pullPolicy }}
+          args: [/bin/sh, -c, 'tail -n+1 -F /var/log/api/common.log']
+          volumeMounts:
+            - name: apilog
+              mountPath: /var/log/api
+        - name: {{ .Chart.Name }}-client-log
+          image: "{{ .Values.image.clientLog.repository }}:{{ .Values.image.clientLog.tag | default .Chart.AppVersion }}"
+          args: [/bin/sh, -c, 'tail -n+1 -F /var/log/api/client.log']
+          imagePullPolicy: {{ .Values.image.clientLog.pullPolicy }}
+          volumeMounts:
+          - name: apilog
+            mountPath: /var/log/api  
+      volumes:
+        - name: apilog
+          emptyDir: {}     
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
