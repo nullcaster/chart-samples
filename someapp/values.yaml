@@ -54,6 +54,10 @@ containerEnv:
       DB_USER: "db-creds"
       DB_PASSWORD:  "db-creds"   
 
+volumeLog:
+  name: apilog
+  mountPath: /var/log/api
+
 service:
   type: ClusterIP
   port: 80

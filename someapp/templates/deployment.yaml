@@ -64,8 +64,8 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            - name: apilog
-              mountPath: /var/log/api
+            - name: {{ .Values.volumeLog.name }}
+              mountPath: {{ .Values.volumeLog.mountPath }}
           env:
           {{- range $key, $val := .Values.containerEnv.api.secret }}
           - name: {{ $key | upper }}
@@ -83,17 +83,17 @@ spec:
           imagePullPolicy: {{ .Values.image.commonLog.pullPolicy }}
           args: [/bin/sh, -c, 'tail -n+1 -F /var/log/api/common.log']
           volumeMounts:
-            - name: apilog
-              mountPath: /var/log/api
+            - name: {{ .Values.volumeLog.name }}
+              mountPath: {{ .Values.volumeLog.mountPath }}
         - name: {{ .Chart.Name }}-client-log
           image: "{{ .Values.image.clientLog.repository }}:{{ .Values.image.clientLog.tag | default .Chart.AppVersion }}"
           args: [/bin/sh, -c, 'tail -n+1 -F /var/log/api/client.log']
           imagePullPolicy: {{ .Values.image.clientLog.pullPolicy }}
           volumeMounts:
-          - name: apilog
-            mountPath: /var/log/api  
+            - name: {{ .Values.volumeLog.name }}
+              mountPath: {{ .Values.volumeLog.mountPath }} 
       volumes:
-        - name: apilog
+        - name: {{ .Values.volumeLog.name }}
           emptyDir: 
             sizeLimit: "5Gi"   
       {{- with .Values.nodeSelector }}
